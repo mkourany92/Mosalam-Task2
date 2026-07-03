@@ -22,11 +22,16 @@ services:
   backend:
     build:
       context: ../backend
+    container_name: mkourany_backend
+    restart: unless-stopped
     environment:
       - MYSQL_HOST=mysql
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - BACKEND_PORT=${BACKEND_PORT}
+    ports:
+      - "3000:3000"
     depends_on:
       - mysql
     networks:
@@ -45,10 +50,37 @@ services:
     networks:
       - backend-net
 
+  cadvisor:
+    image: gcr.io/google-containers/cadvisor:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - monitoring-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - monitoring-net
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    networks:
+      - monitoring-net
+
 networks:
   frontend-net:
     driver: bridge
   backend-net:
+    driver: bridge
+  monitoring-net:
     driver: bridge
 
 volumes:
