@@ -39,11 +39,14 @@ services:
 
   mysql:
     image: mysql:8.0
+    container_name: mkourany_mysql
+    restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - TZ=UTC
     volumes:
       - mysql_data:/var/lib/mysql
       - ../mysql/initdb:/docker-entrypoint-initdb.d:ro

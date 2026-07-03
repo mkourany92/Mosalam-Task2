@@ -28,7 +28,7 @@ docker compose -f compose/docker-compose.yml up -d
 Add only non-secret config needed by Compose:
 ```env
 COMPOSE_PROJECT_NAME=mkourany_web_platform
-MYSQL_ROOT_PASSWORD=change_me
+MYSQL_ROOT_PASSWORD=mkP@ss54321
 MYSQL_DATABASE=appdb
 MYSQL_USER=appuser
 MYSQL_PASSWORD=appsecret
