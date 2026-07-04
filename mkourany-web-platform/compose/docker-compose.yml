@@ -26,6 +26,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    cpus: 0.25
+    mem_limit: 64m   
 
   frontend:
     image: mkourany/frontend:prod
@@ -45,11 +47,8 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
-    deploy:
-      resources:
-        limits:
-          cpus: "0.50"
-          memory: 256M
+    cpus: 0.25
+    mem_limit: 128m
 
   backend:
     image: mkourany/backend:prod
@@ -82,11 +81,8 @@ services:
         max-file: "3"
     secrets:
       - mysql_password
-    deploy:
-      resources:
-        limits:
-          cpus: "0.75"
-          memory: 512M
+    cpus: 0.50
+    mem_limit: 256m
 
   mysql:
     image: mysql:8.0.34
@@ -117,6 +113,8 @@ services:
     secrets:
       - mysql_root_password
       - mysql_password
+    cpus: 0.50
+    mem_limit: 512m  
 
   cadvisor:
     image: gcr.io/google-containers/cadvisor:latest
@@ -128,7 +126,8 @@ services:
     networks:
       - monitoring-net
     restart: unless-stopped
-
+    cpus: 0.25
+    mem_limit: 128m
   prometheus:
     image: prom/prometheus:v2.47.0
     volumes:
@@ -138,6 +137,8 @@ services:
     restart: unless-stopped
     logging:
       driver: "json-file"
+    cpus: 0.25
+    mem_limit: 256m
 
   grafana:
     image: grafana/grafana:10.6.2
@@ -157,6 +158,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    cpus: 0.25
+    mem_limit: 256m  
 
 networks:
   frontend-net:
