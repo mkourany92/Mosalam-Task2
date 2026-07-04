@@ -61,8 +61,8 @@ services:
       MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
       NODE_ENV: production
       PORT: ${BACKEND_PORT:-3000}
-    ports:
-      - "${BACKEND_PORT:-3000}:3000" # optional in strict prod; prefer routing via nginx
+    #ports:
+    #  - "3100:3000" # optional in strict prod; prefer routing via nginx
     depends_on:
       - mysql
     networks:
@@ -145,7 +145,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
