@@ -131,7 +131,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     volumes:
-      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../monitoring/prometheus:/etc/prometheus:ro
     networks:
       - monitoring-net
     restart: unless-stopped
