@@ -2,81 +2,161 @@ version: "3.9"
 
 services:
   nginx:
+    image: mkourany/nginx:prod
     build:
       context: ../nginx
+      dockerfile: Dockerfile
     ports:
-      - "${NGINX_PORT}:80"
+      - "${NGINX_PORT:-8080}:80"
     depends_on:
       - frontend
       - backend
     networks:
       - frontend-net
       - backend-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
+    image: mkourany/frontend:prod
     build:
       context: ../frontend
     networks:
       - frontend-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
 
   backend:
+    image: mkourany/backend:prod
     build:
       context: ../backend
-    container_name: mkourany_backend
-    restart: unless-stopped
     environment:
-      - MYSQL_HOST=mysql
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - BACKEND_PORT=${BACKEND_PORT}
+      MYSQL_HOST: mysql
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-appdb}
+      MYSQL_USER: ${MYSQL_USER:-appuser}
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      NODE_ENV: production
+      PORT: ${BACKEND_PORT:-3000}
     ports:
-      - "3000:3000"
+      - "${BACKEND_PORT:-3000}:3000" # optional in strict prod; prefer routing via nginx
     depends_on:
       - mysql
     networks:
       - backend-net
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    secrets:
+      - mysql_password
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
 
   mysql:
-    image: mysql:8.0
+    image: mysql:8.0.34
     container_name: mkourany_mysql
-    restart: unless-stopped
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - TZ=UTC
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-appdb}
+      MYSQL_USER: ${MYSQL_USER:-appuser}
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
+      TZ: UTC
     volumes:
       - mysql_data:/var/lib/mysql
       - ../mysql/initdb:/docker-entrypoint-initdb.d:ro
     networks:
       - backend-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -pmysql_root || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    secrets:
+      - mysql_root_password
+      - mysql_password
 
   cadvisor:
     image: gcr.io/google-containers/cadvisor:latest
+    privileged: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
     networks:
       - monitoring-net
+    restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.47.0
     volumes:
       - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     networks:
       - monitoring-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.6.2
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
     ports:
       - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
       - monitoring-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 networks:
   frontend-net:
@@ -88,3 +168,12 @@ networks:
 
 volumes:
   mysql_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+secrets:
+  mysql_root_password:
+    file: ../secrets/mysql_root_password.txt
+  mysql_password:
+    file: ../secrets/mysql_password.txt
