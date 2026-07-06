@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   nginx:
-    image: mkourany/nginx:prod
+    image: mkourany/nginx:latest
     build:
       context: ../nginx
       dockerfile: Dockerfile
@@ -117,7 +117,7 @@ services:
     mem_limit: 512m  
 
   cadvisor:
-    image: gcr.io/google-containers/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:latest
     privileged: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
