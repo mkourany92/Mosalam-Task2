@@ -61,6 +61,8 @@ services:
       MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
       NODE_ENV: production
       PORT: ${BACKEND_PORT:-3000}
+      USER_INSERT_CRON: "*/5 * * * *"
+      USER_INSERT_BATCH_SIZE: "1000"
     #ports:
     #  - "3100:3000" # optional in strict prod; prefer routing via nginx
     depends_on:
@@ -85,7 +87,7 @@ services:
     mem_limit: 256m
 
   mysql:
-    image: mysql:8.0.34
+    image: mysql:8.0.46
     container_name: mkourany_mysql
     environment:
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
@@ -119,6 +121,13 @@ services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     privileged: true
+    ports:
+      - "8082:8080"
+    command:
+      - --housekeeping_interval=10s
+      - --docker_only=true
+      - --store_container_labels=true
+      - --disable_metrics=udp,advtcp,sched,process
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /sys:/sys:ro
@@ -130,8 +139,14 @@ services:
     mem_limit: 128m
   prometheus:
     image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
     volumes:
       - ../monitoring/prometheus:/etc/prometheus:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
     networks:
       - monitoring-net
     restart: unless-stopped

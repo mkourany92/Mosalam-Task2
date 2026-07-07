@@ -1,25 +1,36 @@
 const express = require("express");
+const pool = require("./db");
+const usersRouter = require("./routes/users");
+const { startSeedJob } = require("./jobs/userSeedJob");
+const { startUserInsertJob } = require("./jobs/insertUserJob");
+
 const app = express();
+app.use(express.json());
 
-// GET /api/health  -> Liveness: quick app-level check
-app.get('/api/health', (req,res) => res.json({status:'ok'}));
+app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
-// GET /api/ready  -> Readiness: depends on DB/other deps
-app.get('/api/ready', async (req,res) => {
+app.get("/api/ready", async (req, res) => {
   try {
-    await pool.query('SELECT 1'); // fast DB ping
-    res.json({ready:true});
+    await pool.query("SELECT 1");
+    res.json({ ready: true });
   } catch (err) {
-    res.status(503).json({ready:false});
+    res.status(503).json({ ready: false });
   }
 });
 
-app.get("/api/users", (req, res) => {
-  res.json([
-    { id: 1, name: "Alice", email: "alice@example.com" }
-  ]);
-});
+app.use("/api/users", usersRouter);
 
-app.listen(3000, () => {
-  console.log("backend listening on 3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`backend listening on ${PORT}`);
+
+  startUserInsertJob(pool, {
+    cronExpression: process.env.USER_INSERT_CRON || "*/5 * * * *",
+    count: Number(process.env.USER_INSERT_BATCH_SIZE || 1000),
+  });
+
+  startSeedJob(pool, {
+    intervalMs: process.env.DATA_JOB_INTERVAL_MS || 1000 * 60 * 60 * 24 * 30 * 10,
+  });
 });
