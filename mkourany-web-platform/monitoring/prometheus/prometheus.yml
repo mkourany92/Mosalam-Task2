@@ -3,11 +3,12 @@ global:
   scrape_timeout: 10s
 
 scrape_configs:
-  - job_name: 'cadvisor'
+  - job_name: prometheus
     static_configs:
-      - targets: ['cadvisor:8080']
+      - targets:
+          - prometheus:9090
 
-  - job_name: 'docker'
-    metrics_path: /metrics
+  - job_name: cadvisor
     static_configs:
-      - targets: ['localhost:9323']  # optional node-exporter / dockerd metrics if you expose them
+      - targets:
+          - cadvisor:8080
