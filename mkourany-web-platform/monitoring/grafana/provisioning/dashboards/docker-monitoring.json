@@ -40,7 +40,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (container_label_com_docker_compose_service) (rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_service=~\"nginx|frontend|backend|mysql|cadvisor|prometheus|grafana\"}[5m])) * 100",
+          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total[5m])) * 100",
           "legendFormat": "{{container_label_com_docker_compose_service}}",
           "refId": "A"
         }
@@ -57,7 +57,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (container_label_com_docker_compose_service) (container_memory_usage_bytes{container_label_com_docker_compose_service=~\"nginx|frontend|backend|mysql|cadvisor|prometheus|grafana\"}) / 1024 / 1024",
+          "expr": "container_memory_usage_bytes",
           "legendFormat": "{{container_label_com_docker_compose_service}}",
           "refId": "A"
         }
@@ -74,7 +74,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (container_label_com_docker_compose_service) (rate(container_network_receive_bytes_total{container_label_com_docker_compose_service=~\"nginx|frontend|backend|mysql|cadvisor|prometheus|grafana\"}[5m]))",
+          "expr": "sum by (name) (rate(container_network_receive_bytes_total[5m]))",
           "legendFormat": "{{container_label_com_docker_compose_service}}",
           "refId": "A"
         }
@@ -91,7 +91,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (container_label_com_docker_compose_service) (rate(container_network_transmit_bytes_total{container_label_com_docker_compose_service=~\"nginx|frontend|backend|mysql|cadvisor|prometheus|grafana\"}[5m]))",
+          "expr": "rate(container_network_transmit_bytes_total[5m])",
           "legendFormat": "{{container_label_com_docker_compose_service}}",
           "refId": "A"
         }
@@ -103,7 +103,7 @@
       "gridPos": { "h": 6, "w": 12, "x": 0, "y": 16 },
       "targets": [
         {
-          "expr": "count(container_last_seen{container_label_com_docker_compose_service=~\"nginx|frontend|backend|mysql|cadvisor|prometheus|grafana\"})",
+          "expr": "count(max by (container_label_com_docker_compose_service)(container_last_seen{image!=\"\",container_label_com_docker_compose_service!=\"\"}))",
           "refId": "A"
         }
       ]
